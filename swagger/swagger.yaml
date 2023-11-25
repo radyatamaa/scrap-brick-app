@@ -1,0 +1,156 @@
+basePath: /api
+definitions:
+  swagger.BadRequestErrorValidationResponse:
+    properties:
+      code:
+        example: KDMU-02-006
+        type: string
+      data: {}
+      errors: {}
+      message:
+        example: permintaan tidak valid, kesalahan muncul ketika permintaan Anda memiliki
+          parameter yang tidak valid.
+        type: string
+      request_id:
+        example: 24fa3770-628c-49de-aa17-3a338f73d99b
+        type: string
+      timestamp:
+        example: "2022-04-27 23:19:56"
+        type: string
+    type: object
+  swagger.BaseResponse:
+    properties:
+      code:
+        example: OK
+        type: string
+      data: {}
+      errors: {}
+      message:
+        example: operasi berhasil dieksekusi.
+        type: string
+      request_id:
+        example: 24fa3770-628c-49de-aa17-3a338f73d99b
+        type: string
+      timestamp:
+        example: "2022-04-27 23:19:56"
+        type: string
+    type: object
+  swagger.InternalServerErrorResponse:
+    properties:
+      code:
+        example: KDMU-02-008
+        type: string
+      data: {}
+      errors: {}
+      message:
+        example: terjadi kesalahan, silakan hubungi administrator.
+        type: string
+      request_id:
+        example: 24fa3770-628c-49de-aa17-3a338f73d99b
+        type: string
+      timestamp:
+        example: "2022-04-27 23:19:56"
+        type: string
+    type: object
+  swagger.RequestTimeoutResponse:
+    properties:
+      code:
+        example: KDMU-02-009
+        type: string
+      data: {}
+      errors: {}
+      message:
+        example: permintaan telah melampaui batas waktu, harap request kembali.
+        type: string
+      request_id:
+        example: 24fa3770-628c-49de-aa17-3a338f73d99b
+        type: string
+      timestamp:
+        example: "2022-04-27 23:19:56"
+        type: string
+    type: object
+  swagger.ValidationErrors:
+    properties:
+      field:
+        example: MobilePhone wajib diisi.
+        type: string
+      message:
+        example: ActiveDate harus format yang benar yyyy-mm-dd.
+        type: string
+    type: object
+info:
+  contact:
+    email: mohradyatama24@gmail.com
+    name: radyatama
+  description: api "API Gateway v1"
+  title: Api Gateway V1
+  version: v1
+paths:
+  /v1/scrape-product-tokopedia-phone-category:
+    post:
+      parameters:
+      - description: lang
+        in: header
+        name: Accept-Language
+        type: string
+      - description: max_count
+        in: query
+        name: max_count
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/swagger.BaseResponse'
+            - properties:
+                errors:
+                  items:
+                    type: object
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/swagger.BadRequestErrorValidationResponse'
+            - properties:
+                data:
+                  type: object
+                errors:
+                  items:
+                    $ref: '#/definitions/swagger.ValidationErrors'
+                  type: array
+              type: object
+        "408":
+          description: Request Timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/swagger.RequestTimeoutResponse'
+            - properties:
+                data:
+                  type: object
+                errors:
+                  items:
+                    type: object
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/swagger.InternalServerErrorResponse'
+            - properties:
+                data:
+                  type: object
+                errors:
+                  items:
+                    type: object
+                  type: array
+              type: object
+      summary: ScrapeProducts
+      tags:
+      - Product
+swagger: "2.0"

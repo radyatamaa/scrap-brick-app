@@ -1,0 +1,9 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:6-alpine
+    restart: always
+    container_name: microservices_redis
+    ports:
+      - "6379:6379"
