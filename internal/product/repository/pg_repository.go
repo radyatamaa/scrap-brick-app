@@ -101,6 +101,16 @@ func (c pgProductRepository) SoftDelete(ctx context.Context, id int) (int, error
 	return id, nil
 }
 
+func (c pgProductRepository) DeleteAll(ctx context.Context) error {
+	var data domain.Product
+
+	err := c.db.WithContext(ctx).Where("created_at is not null").Delete(&data).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c pgProductRepository) UpdateSelectedFieldWithTx(ctx context.Context, tx *gorm.DB, field []string, values map[string]interface{}, id int) error {
 
 	return tx.WithContext(ctx).Table(domain.Product{}.TableName()).Select(field).Where("id =?", id).Updates(values).Error

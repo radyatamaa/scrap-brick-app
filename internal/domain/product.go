@@ -9,10 +9,10 @@ import (
 
 type Product struct {
 	ID            int       `gorm:"column:id;primarykey;autoIncrement:true"`
-	Name     string    `gorm:"type:varchar(255);column:name"`
-	Desc      string    `gorm:"type:varchar(255);column:desc"`
+	Name     string    `gorm:"type:text;column:name"`
+	Desc      string    `gorm:"type:text;column:desc"`
 	Image        string    `gorm:"type:text;column:image"`
-	Price   string    `gorm:"type:varchar(100);column:price"`
+	Price   string    `gorm:"type:varchar(255);column:price"`
 	Rating string    `gorm:"type:varchar(100);column:rating"`
 	Merchant         string    `gorm:"type:varchar(255);column:merchant"`
 	CreatedAt     time.Time `gorm:"column:created_at"`
@@ -36,10 +36,12 @@ type PgProductRepository interface {
 	StoreWithTx(ctx context.Context, tx *gorm.DB, data Product) (int, error)
 	Delete(ctx context.Context, id int) (int, error)
 	SoftDelete(ctx context.Context, id int) (int, error)
+	DeleteAll(ctx context.Context) error
 	DB() *gorm.DB
 }
 
 // ProductUseCase UseCase Interface
 type ProductUseCase interface {
-	ScrapeProducts(beegoCtx *beegoContext.Context,maxCount int) error
+	ScrapeProducts(beegoCtx *beegoContext.Context) error
+	GetProducts(beegoCtx *beegoContext.Context,limit int) ([]Product,error)
 }

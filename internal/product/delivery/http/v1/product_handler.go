@@ -27,7 +27,7 @@ func NewProductHandler(customerUsecase domain.ProductUseCase, zapLogger zaplogge
 		ProductUsecase: customerUsecase,
 	}
 	beego.Router("/api/v1/scrape-product-tokopedia-phone-category", pHandler, "post:ScrapeProducts")
-	//beego.Router("/api/v1/link-voucher/:id", pHandler, "get:GetLinkVoucher")
+	beego.Router("/api/v1/product", pHandler, "get:GetProducts")
 }
 
 func (h *ProductHandler) Prepare() {
@@ -45,17 +45,9 @@ func (h *ProductHandler) Prepare() {
 // @Failure 400 {object} swagger.BadRequestErrorValidationResponse{errors=[]swagger.ValidationErrors,data=object}
 // @Failure 408 {object} swagger.RequestTimeoutResponse{errors=[]object,data=object}
 // @Failure 500 {object} swagger.InternalServerErrorResponse{errors=[]object,data=object}
-// @Param    max_count query int false "max_count"
 // @Router /v1/scrape-product-tokopedia-phone-category [post]
 func (h *ProductHandler) ScrapeProducts() {
-	maxCount, err := strconv.Atoi(h.Ctx.Input.Query("max_count"))
-	if err != nil {
-		h.ResponseError(h.Ctx, http.StatusBadRequest, response.QueryParamInvalidCode, response.ErrorCodeText(response.QueryParamInvalidCode, h.Locale.Lang), err)
-		return
-	}
-
-
-	err = h.ProductUsecase.ScrapeProducts(h.Ctx, maxCount)
+	err := h.ProductUsecase.ScrapeProducts(h.Ctx)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			h.ResponseError(h.Ctx, http.StatusRequestTimeout, response.RequestTimeoutCodeError, response.ErrorCodeText(response.RequestTimeoutCodeError, h.Locale.Lang), err)
@@ -71,59 +63,38 @@ func (h *ProductHandler) ScrapeProducts() {
 	h.Ok(h.Ctx, h.Tr("message.success"), nil)
 	return
 }
-//
-//// GetLinkVoucher
-//// @Title GetLinkVoucher
-//// @Tags Product
-//// @Summary GetLinkVoucher
-//// @Produce json
-//// @Param Accept-Language header string false "lang"
-//// @Success 200 {object} swagger.BaseResponse{data=[]domain.ProductVoucherBookResponse,errors=[]object}
-//// @Failure 408 {object} swagger.RequestTimeoutResponse{errors=[]object,data=object}
-//// @Failure 500 {object} swagger.InternalServerErrorResponse{errors=[]object,data=object}
-//// @Param    id path int true "id customer"
-//// @router /v1/link-voucher/{id} [get]
-//func (h *ProductHandler) GetLinkVoucher() {
-//	pathParam, err := strconv.Atoi(h.Ctx.Input.Param(":id"))
-//
-//	if err != nil || pathParam < 1 {
-//		h.ResponseError(h.Ctx, http.StatusBadRequest, response.PathParamInvalidCode, response.ErrorCodeText(response.PathParamInvalidCode, h.Locale.Lang), err)
-//		return
-//	}
-//
-//	result, err := h.ProductUsecase.GetVoucherByProductId(h.Ctx, pathParam)
-//	if err != nil {
-//		if errors.Is(err, response.ErrVoucherNotAvailable) {
-//			h.ResponseError(h.Ctx, http.StatusBadRequest, response.VoucherNotAvailable, response.ErrorCodeText(response.VoucherNotAvailable, h.Locale.Lang), err)
-//			return
-//		}
-//		if errors.Is(err, response.ErrTransactionCompletePurchase30Days) {
-//			h.ResponseError(h.Ctx, http.StatusBadRequest, response.TransactionCompletePurchase30Days, response.ErrorCodeText(response.TransactionCompletePurchase30Days, h.Locale.Lang), err)
-//			return
-//		}
-//		if errors.Is(err, response.ErrTransactionMinimum) {
-//			h.ResponseError(h.Ctx, http.StatusBadRequest, response.TransactionMinimum, response.ErrorCodeText(response.TransactionMinimum, h.Locale.Lang), err)
-//			return
-//		}
-//		if errors.Is(err, response.ErrProductAlreadyBookVoucher) {
-//			h.ResponseError(h.Ctx, http.StatusBadRequest, response.ProductAlreadyBookVoucher, response.ErrorCodeText(response.ProductAlreadyBookVoucher, h.Locale.Lang), err)
-//			return
-//		}
-//		if errors.Is(err, response.ErrProductAlreadyGetVoucher) {
-//			h.ResponseError(h.Ctx, http.StatusBadRequest, response.ProductAlreadyGetVoucher, response.ErrorCodeText(response.ProductAlreadyGetVoucher, h.Locale.Lang), err)
-//			return
-//		}
-//		if errors.Is(err, gorm.ErrRecordNotFound) {
-//			h.ResponseError(h.Ctx, http.StatusBadRequest, response.DataNotFoundCodeError, response.ErrorCodeText(response.DataNotFoundCodeError, h.Locale.Lang), err)
-//			return
-//		}
-//		if errors.Is(err, context.DeadlineExceeded) {
-//			h.ResponseError(h.Ctx, http.StatusRequestTimeout, response.RequestTimeoutCodeError, response.ErrorCodeText(response.RequestTimeoutCodeError, h.Locale.Lang), err)
-//			return
-//		}
-//		h.ResponseError(h.Ctx, http.StatusInternalServerError, response.ServerErrorCode, response.ErrorCodeText(response.ServerErrorCode, h.Locale.Lang), err)
-//		return
-//	}
-//	h.Ok(h.Ctx, h.Tr("message.success"), result)
-//	return
-//}
+
+// GetProducts
+// @Title GetProducts
+// @Tags Product
+// @Summary GetProducts
+// @Produce json
+// @Param Accept-Language header string false "lang"
+// @Success 200 {object} swagger.BaseResponse{data=[]domain.Product,errors=[]object}
+// @Failure 408 {object} swagger.RequestTimeoutResponse{errors=[]object,data=object}
+// @Failure 500 {object} swagger.InternalServerErrorResponse{errors=[]object,data=object}
+// @Param    limit query int true "limit"
+// @router /v1/product [get]
+func (h *ProductHandler) GetProducts() {
+	limit, err := strconv.Atoi(h.Ctx.Input.Query("limit"))
+	if err != nil {
+		h.ResponseError(h.Ctx, http.StatusBadRequest, response.QueryParamInvalidCode, response.ErrorCodeText(response.QueryParamInvalidCode, h.Locale.Lang), err)
+		return
+	}
+
+	result, err := h.ProductUsecase.GetProducts(h.Ctx, limit)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.ResponseError(h.Ctx, http.StatusBadRequest, response.DataNotFoundCodeError, response.ErrorCodeText(response.DataNotFoundCodeError, h.Locale.Lang), err)
+			return
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			h.ResponseError(h.Ctx, http.StatusRequestTimeout, response.RequestTimeoutCodeError, response.ErrorCodeText(response.RequestTimeoutCodeError, h.Locale.Lang), err)
+			return
+		}
+		h.ResponseError(h.Ctx, http.StatusInternalServerError, response.ServerErrorCode, response.ErrorCodeText(response.ServerErrorCode, h.Locale.Lang), err)
+		return
+	}
+	h.Ok(h.Ctx, h.Tr("message.success"), result)
+	return
+}

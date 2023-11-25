@@ -63,6 +63,8 @@ back :
 		return nil, err
 	}
 
+	defer driver.Close()
+
 	// visit the target page
 	err = driver.Get(url)
 	if err != nil {
@@ -100,8 +102,8 @@ back :
 		result[i].Desc = desc
 	})
 
-	doc.Find(".css-13l3l78 .css-54k5sq").Each(func(i int, s *goquery.Selection) {
-		image, exists := s.Attr("href")
+	doc.Find(".css-13l3l78 .css-1g5og91 img").Each(func(i int, s *goquery.Selection) {
+		image, exists := s.Attr("src")
 		if exists {
 			result[i].Image = image
 		}
@@ -131,11 +133,30 @@ back :
 	return result, nil
 }
 
-func (p productUseCase) scraper(url string, writer *csv.Writer) {
+func (p productUseCase) scraper() {
+	// CSV file setup
+	csvFile, err := os.Create("products.csv")
+	if err != nil {
+		p.zapLogger.Errorf("Error CSV %s", err.Error())
+		return
+	}
+	defer csvFile.Close()
+
+	// CSV writer setup
+	writer := csv.NewWriter(csvFile)
+	defer writer.Flush()
+
+	// Write CSV header
+	writer.Write([]string{"Name", "Description", "Image Link", "Price", "Rating", "Merchant"})
+
+	// Define the URL to scrape
+	url := "https://www.tokopedia.com/p/handphone-tablet/handphone"
+
+
 	var wg sync.WaitGroup
 
 	// Start scraping with multiple threads
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 17; i++ {
 		wg.Add(1)
 		go func(pageNum int) {
 			defer wg.Done()
@@ -180,32 +201,57 @@ func (p productUseCase) scraper(url string, writer *csv.Writer) {
 }
 ///////
 
+// query func
+func (r productUseCase) fetchProductWithFilter(ctx context.Context, limit, offset int, filter []string, args ...interface{}) ([]domain.Product, error) {
 
-func (p productUseCase) ScrapeProducts(beegoCtx *beegoContext.Context, maxCount int) error {
-	_, cancel := context.WithTimeout(beegoCtx.Request.Context(), p.contextTimeout)
+	if purchaseTransaction, err := r.pgProductRepository.FetchWithFilter(
+		ctx,
+		limit,
+		offset,
+		"id asc",
+		[]string{
+			"*",
+		},
+		[]string{},
+		filter,
+		&[]domain.Product{}, args); err != nil {
+		return nil, err
+	} else {
+		if result, ok := purchaseTransaction.(*[]domain.Product); !ok {
+			return []domain.Product{}, nil
+		} else {
+			return *result, nil
+		}
+	}
+}
+//
+
+func (p productUseCase) ScrapeProducts(beegoCtx *beegoContext.Context) error {
+	ctx, cancel := context.WithTimeout(beegoCtx.Request.Context(), p.contextTimeout)
 	defer cancel()
 
-	// CSV file setup
-	csvFile, err := os.Create("products.csv")
+	err := p.pgProductRepository.DeleteAll(ctx)
 	if err != nil {
-		fmt.Println(err)
+		beegoCtx.Input.SetData("stackTrace", p.zapLogger.SetMessageLog(err))
+		return err
 	}
-	defer csvFile.Close()
-
-	// CSV writer setup
-	writer := csv.NewWriter(csvFile)
-	defer writer.Flush()
-
-	// Write CSV header
-	writer.Write([]string{"Name", "Description", "Image Link", "Price", "Rating", "Merchant"})
-
-	// Define the URL to scrape
-	url := "https://www.tokopedia.com/p/handphone-tablet/handphone"
-
 
 	// Perform the scraping
-	p.scraper(url, writer)
+	go p.scraper()
 
 	return err
 }
 
+
+func (p productUseCase) GetProducts(beegoCtx *beegoContext.Context,limit int) ([]domain.Product, error) {
+	ctx, cancel := context.WithTimeout(beegoCtx.Request.Context(), p.contextTimeout)
+	defer cancel()
+
+	fetch, err := p.fetchProductWithFilter(ctx, limit, 0, []string{})
+	if err != nil {
+		beegoCtx.Input.SetData("stackTrace", p.zapLogger.SetMessageLog(err))
+		return nil, err
+	}
+
+	return fetch,nil
+}

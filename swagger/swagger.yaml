@@ -1,5 +1,26 @@
 basePath: /api
 definitions:
+  domain.Product:
+    properties:
+      createdAt:
+        type: string
+      desc:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      merchant:
+        type: string
+      name:
+        type: string
+      price:
+        type: string
+      rating:
+        type: string
+      updatedAt:
+        type: string
+    type: object
   swagger.BadRequestErrorValidationResponse:
     properties:
       code:
@@ -86,6 +107,65 @@ info:
   title: Api Gateway V1
   version: v1
 paths:
+  /v1/product:
+    get:
+      parameters:
+      - description: lang
+        in: header
+        name: Accept-Language
+        type: string
+      - description: limit
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/swagger.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/domain.Product'
+                  type: array
+                errors:
+                  items:
+                    type: object
+                  type: array
+              type: object
+        "408":
+          description: Request Timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/swagger.RequestTimeoutResponse'
+            - properties:
+                data:
+                  type: object
+                errors:
+                  items:
+                    type: object
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/swagger.InternalServerErrorResponse'
+            - properties:
+                data:
+                  type: object
+                errors:
+                  items:
+                    type: object
+                  type: array
+              type: object
+      summary: GetProducts
+      tags:
+      - Product
   /v1/scrape-product-tokopedia-phone-category:
     post:
       parameters:
@@ -93,10 +173,6 @@ paths:
         in: header
         name: Accept-Language
         type: string
-      - description: max_count
-        in: query
-        name: max_count
-        type: integer
       produces:
       - application/json
       responses:
